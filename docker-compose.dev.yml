@@ -1,0 +1,94 @@
+version: '3.8'
+
+# Development mode - Only runs infrastructure services (MongoDB, Temporal)
+# API and UI run locally on the host
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: prompt-tuning-mongodb-dev
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
+    ports:
+      - "${MONGODB_PORT}:27017"
+    volumes:
+      - mongodb_dev_data:/data/db
+    networks:
+      - prompt-tuning-network-dev
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Temporal PostgreSQL Database
+  temporal-postgres:
+    image: postgres:15-alpine
+    container_name: prompt-tuning-temporal-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    volumes:
+      - temporal_postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - prompt-tuning-network-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Temporal Server
+  temporal:
+    image: temporalio/auto-setup:1.24.2
+    container_name: prompt-tuning-temporal-dev
+    restart: unless-stopped
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=temporal-postgres
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    ports:
+      - "${TEMPORAL_PORT}:7233"
+    depends_on:
+      temporal-postgres:
+        condition: service_healthy
+    networks:
+      - prompt-tuning-network-dev
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Temporal Web UI
+  temporal-ui:
+    image: temporalio/ui:2.26.2
+    container_name: prompt-tuning-temporal-ui-dev
+    restart: unless-stopped
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "${TEMPORAL_WEB_PORT}:8080"
+    depends_on:
+      - temporal
+    networks:
+      - prompt-tuning-network-dev
+
+volumes:
+  mongodb_dev_data:
+    driver: local
+  temporal_postgres_dev_data:
+    driver: local
+
+networks:
+  prompt-tuning-network-dev:
+    driver: bridge
