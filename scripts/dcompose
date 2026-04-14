@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Thin wrapper so Makefile can invoke the same compose detection as shell scripts.
+set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/compose.sh
+source "$SCRIPT_DIR/lib/compose.sh"
+compose_init || exit 1
+compose "$@"

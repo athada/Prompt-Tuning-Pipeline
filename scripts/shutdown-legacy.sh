@@ -1,14 +1,19 @@
 #!/bin/bash
 
-# Shutdown script for Prompt Tuning Pipeline
+# Shutdown script for Prompt Tuning Pipeline (legacy compose file)
 
 set -e
 
-# Colors for output
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+# shellcheck source=lib/compose.sh
+source "$SCRIPT_DIR/lib/compose.sh"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 print_status() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -23,12 +28,10 @@ echo "Prompt Tuning Pipeline - Shutdown"
 echo "================================"
 echo ""
 
-# Stop Docker containers
 print_status "Stopping Docker containers..."
-docker-compose down
+compose -f docker-compose.legacy.yml down
 print_success "Docker containers stopped"
 
-# Optionally stop Ollama
 read -p "Do you want to stop Ollama service? (y/N) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then

@@ -4,6 +4,12 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+# shellcheck source=lib/compose.sh
+source "$SCRIPT_DIR/lib/compose.sh"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -24,7 +30,7 @@ echo ""
 
 # Stop Docker infrastructure
 print_status "Stopping Docker infrastructure..."
-docker-compose -f docker-compose.dev.yml down
+compose -f docker-compose.dev.yml down
 print_success "Docker infrastructure stopped"
 
 # Optionally stop Ollama

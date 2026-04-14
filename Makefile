@@ -1,4 +1,7 @@
 # Makefile for Prompt Tuning Pipeline
+# Compose: ./scripts/dcompose prefers `docker compose`, falls back to `docker-compose`
+
+DC := ./scripts/dcompose
 
 .PHONY: help dev-start dev-stop prod-start prod-stop start stop restart logs clean rebuild seed test status
 
@@ -17,7 +20,7 @@ help:
 	@echo "  make prod-logs       - View production logs"
 	@echo "  make prod-rebuild    - Rebuild production containers"
 	@echo ""
-	@echo "Legacy Commands (uses old docker-compose.yml):"
+	@echo "Legacy Commands (uses docker-compose.legacy.yml):"
 	@echo "  make start           - Start all services (original)"
 	@echo "  make stop            - Stop all services"
 	@echo "  make restart         - Restart all services"
@@ -37,11 +40,11 @@ help:
 
 dev-start:
 	@echo "Starting Development Infrastructure..."
-	@./startup-dev.sh
+	@./scripts/startup-dev.sh
 
 dev-stop:
 	@echo "Stopping Development Infrastructure..."
-	@./shutdown-dev.sh
+	@./scripts/shutdown-dev.sh
 
 dev-api:
 	@echo "Starting API/Worker locally..."
@@ -60,7 +63,7 @@ dev-setup:
 	@echo "Development environment ready!"
 
 dev-logs:
-	@docker-compose -f docker-compose.dev.yml logs -f
+	@$(DC) -f docker-compose.dev.yml logs -f
 
 # ============================================================================
 # Production/Deploy Mode Commands
@@ -68,63 +71,63 @@ dev-logs:
 
 prod-start:
 	@echo "Starting Production Mode..."
-	@./startup-prod.sh
+	@./scripts/startup-prod.sh
 
 prod-stop:
 	@echo "Stopping Production Mode..."
-	@./shutdown-prod.sh
+	@./scripts/shutdown-prod.sh
 
 prod-logs:
-	@docker-compose -f docker-compose.prod.yml logs -f
+	@$(DC) -f docker-compose.prod.yml logs -f
 
 prod-logs-api:
-	@docker-compose -f docker-compose.prod.yml logs -f api-worker
+	@$(DC) -f docker-compose.prod.yml logs -f api-worker
 
 prod-logs-ui:
-	@docker-compose -f docker-compose.prod.yml logs -f ui
+	@$(DC) -f docker-compose.prod.yml logs -f ui
 
 prod-rebuild:
 	@echo "Rebuilding production containers..."
-	@docker-compose -f docker-compose.prod.yml down
-	@docker-compose -f docker-compose.prod.yml up -d --build
+	@$(DC) -f docker-compose.prod.yml down
+	@$(DC) -f docker-compose.prod.yml up -d --build
 	@echo "Rebuild complete"
 
 prod-shell-api:
-	@docker-compose -f docker-compose.prod.yml exec api-worker /bin/bash
+	@$(DC) -f docker-compose.prod.yml exec api-worker /bin/bash
 
 prod-status:
-	@docker-compose -f docker-compose.prod.yml ps
+	@$(DC) -f docker-compose.prod.yml ps
 
 # ============================================================================
-# Legacy Commands (Original docker-compose.yml)
+# Legacy Commands (docker-compose.legacy.yml)
 # ============================================================================
 
 start:
 	@echo "Starting Prompt Tuning Pipeline (legacy mode)..."
-	@./startup.sh
+	@./scripts/startup-legacy.sh
 
 stop:
 	@echo "Stopping services..."
-	@docker-compose down
+	@$(DC) -f docker-compose.legacy.yml down
 
 restart: stop start
 
 logs:
-	@docker-compose logs -f
+	@$(DC) -f docker-compose.legacy.yml logs -f
 
 logs-api:
-	@docker-compose logs -f api-worker
+	@$(DC) -f docker-compose.legacy.yml logs -f api-worker
 
 logs-ui:
-	@docker-compose logs -f ui
+	@$(DC) -f docker-compose.legacy.yml logs -f ui
 
 logs-temporal:
-	@docker-compose logs -f temporal
+	@$(DC) -f docker-compose.legacy.yml logs -f temporal
 
 rebuild:
 	@echo "Rebuilding services..."
-	@docker-compose down
-	@docker-compose up -d --build
+	@$(DC) -f docker-compose.legacy.yml down
+	@$(DC) -f docker-compose.legacy.yml up -d --build
 	@echo "Rebuild complete"
 
 # ============================================================================
@@ -133,9 +136,9 @@ rebuild:
 
 clean:
 	@echo "Cleaning up all containers and volumes..."
-	@docker-compose down -v
-	@docker-compose -f docker-compose.dev.yml down -v
-	@docker-compose -f docker-compose.prod.yml down -v
+	@$(DC) -f docker-compose.legacy.yml down -v 2>/dev/null || true
+	@$(DC) -f docker-compose.dev.yml down -v 2>/dev/null || true
+	@$(DC) -f docker-compose.prod.yml down -v 2>/dev/null || true
 	@echo "Cleanup complete"
 
 seed-dev:
@@ -144,24 +147,24 @@ seed-dev:
 
 seed-prod:
 	@echo "Seeding database (prod mode)..."
-	@docker-compose -f docker-compose.prod.yml exec api-worker python seed_db.py
+	@$(DC) -f docker-compose.prod.yml exec api-worker python seed_db.py
 
 seed:
 	@echo "Seeding database (legacy mode)..."
-	@docker-compose exec api-worker python seed_db.py
+	@$(DC) -f docker-compose.legacy.yml exec api-worker python seed_db.py
 
 status:
 	@echo "=== Development Infrastructure ==="
-	@docker-compose -f docker-compose.dev.yml ps
+	@$(DC) -f docker-compose.dev.yml ps
 	@echo ""
 	@echo "=== Production Services ==="
-	@docker-compose -f docker-compose.prod.yml ps
+	@$(DC) -f docker-compose.prod.yml ps
 
 shell-mongodb-dev:
-	@docker-compose -f docker-compose.dev.yml exec mongodb mongosh
+	@$(DC) -f docker-compose.dev.yml exec mongodb mongosh
 
 shell-mongodb-prod:
-	@docker-compose -f docker-compose.prod.yml exec mongodb mongosh
+	@$(DC) -f docker-compose.prod.yml exec mongodb mongosh
 
 health:
 	@echo "Checking service health..."

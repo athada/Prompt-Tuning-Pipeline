@@ -6,6 +6,12 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+# shellcheck source=lib/compose.sh
+source "$SCRIPT_DIR/lib/compose.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -70,7 +76,7 @@ pull_model() {
 # Start Docker infrastructure only
 start_docker_infrastructure() {
     print_status "Starting Docker infrastructure (MongoDB + Temporal)..."
-    docker-compose -f docker-compose.dev.yml up -d
+    compose -f docker-compose.dev.yml up -d
     print_success "Docker infrastructure started"
 }
 
@@ -81,7 +87,7 @@ wait_for_infrastructure() {
     # Wait for MongoDB
     echo -n "Waiting for MongoDB"
     for i in {1..30}; do
-        if docker-compose -f docker-compose.dev.yml ps mongodb | grep -q "healthy"; then
+        if compose -f docker-compose.dev.yml ps mongodb | grep -q "healthy"; then
             echo ""
             print_success "MongoDB is healthy"
             break
@@ -93,7 +99,7 @@ wait_for_infrastructure() {
     # Wait for Temporal
     echo -n "Waiting for Temporal"
     for i in {1..30}; do
-        if docker-compose -f docker-compose.dev.yml ps temporal | grep -q "healthy"; then
+        if compose -f docker-compose.dev.yml ps temporal | grep -q "healthy"; then
             echo ""
             print_success "Temporal is healthy"
             break
@@ -113,7 +119,7 @@ check_python_env() {
         python3 -m venv venv
         source venv/bin/activate
         pip install -r requirements.txt
-        cd ..
+        cd "$REPO_ROOT"
         print_success "Python virtual environment created"
     else
         print_success "Python virtual environment exists"
@@ -128,7 +134,7 @@ check_node_env() {
         print_warning "Node modules not found. Installing..."
         cd ui
         npm install
-        cd ..
+        cd "$REPO_ROOT"
         print_success "Node modules installed"
     else
         print_success "Node modules exist"
@@ -141,7 +147,7 @@ seed_database() {
     cd api-worker
     source venv/bin/activate
     python seed_db.py
-    cd ..
+    cd "$REPO_ROOT"
     print_success "Database seeded"
 }
 
@@ -151,7 +157,9 @@ main() {
     echo "Prompt Tuning Pipeline - Development Mode Setup"
     echo "================================================"
     echo ""
-    
+
+    compose_init || exit 1
+
     # Step 1: Check Ollama
     check_ollama
     
@@ -207,7 +215,7 @@ main() {
     echo "  - API Docs: http://localhost:8000/docs"
     echo ""
     echo "To stop infrastructure:"
-    echo "  ./shutdown-dev.sh"
+    echo "  ./scripts/shutdown-dev.sh"
     echo ""
 }
 

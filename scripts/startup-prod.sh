@@ -5,6 +5,12 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+# shellcheck source=lib/compose.sh
+source "$SCRIPT_DIR/lib/compose.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -69,7 +75,7 @@ pull_model() {
 # Start Docker containers
 start_docker() {
     print_status "Starting all Docker containers (production mode)..."
-    docker-compose -f docker-compose.prod.yml up -d --build
+    compose -f docker-compose.prod.yml up -d --build
     print_success "Docker containers started"
 }
 
@@ -105,7 +111,7 @@ wait_for_services() {
 # Seed database
 seed_database() {
     print_status "Seeding database with base prompts..."
-    docker-compose -f docker-compose.prod.yml exec -T api-worker python seed_db.py
+    compose -f docker-compose.prod.yml exec -T api-worker python seed_db.py
     print_success "Database seeded"
 }
 
@@ -115,7 +121,9 @@ main() {
     echo "Prompt Tuning Pipeline - Production/Deploy Mode"
     echo "=================================================="
     echo ""
-    
+
+    compose_init || exit 1
+
     # Step 1: Check Ollama
     check_ollama
     
@@ -147,8 +155,8 @@ main() {
     echo "  - Temporal UI:      http://localhost:8088"
     echo "  - Ollama:           http://localhost:11434"
     echo ""
-    echo "To view logs: docker-compose -f docker-compose.prod.yml logs -f"
-    echo "To stop:      ./shutdown-prod.sh"
+    echo "To view logs: ./scripts/dcompose -f docker-compose.prod.yml logs -f"
+    echo "To stop:      ./scripts/shutdown-prod.sh"
     echo ""
 }
 

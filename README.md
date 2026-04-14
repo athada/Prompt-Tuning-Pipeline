@@ -108,9 +108,9 @@ Each agent has:
 - Fast iteration, easy debugging
 
 ```bash
-# One-time setup
-chmod +x startup-dev.sh shutdown-dev.sh
-./startup-dev.sh
+# One-time setup (run from repo root)
+chmod +x scripts/*.sh
+./scripts/startup-dev.sh
 
 # Then in separate terminals:
 # Terminal 1: API/Worker
@@ -127,15 +127,15 @@ cd ui && npm run dev
 - Production-ready deployment
 
 ```bash
-chmod +x startup-prod.sh shutdown-prod.sh
-./startup-prod.sh
+chmod +x scripts/*.sh
+./scripts/startup-prod.sh
 
 # Access: http://localhost:3000
 ```
 
 ### Prerequisites
 - macOS (for MPS acceleration via Ollama)
-- Docker & Docker Compose
+- **Docker** with a working **Compose** command: either `docker compose` (Compose V2 CLI plugin) or standalone `docker-compose`. Scripts and `make` use `scripts/dcompose`, which tries `docker compose` first, then `docker-compose`. If you see errors about missing `~/.docker/cli-plugins/docker-compose`, reinstall Docker Desktop or run `brew install docker-compose`.
 - Ollama: `brew install ollama`
 - Python 3.11+ (dev mode)
 - Node.js 20+ (dev mode)
@@ -248,7 +248,7 @@ chmod +x startup-prod.sh shutdown-prod.sh
 
 ```bash
 # One-time setup
-./startup-dev.sh
+./scripts/startup-dev.sh
 
 # Daily: Terminal 1 (API)
 cd api-worker
@@ -260,7 +260,7 @@ cd ui
 npm run dev
 
 # Stop when done
-./shutdown-dev.sh
+./scripts/shutdown-dev.sh
 ```
 
 ### Configuration
@@ -290,7 +290,7 @@ npm run dev
 ### Setup & Deployment
 
 ```bash
-./startup-prod.sh
+./scripts/startup-prod.sh
 
 # View logs
 make prod-logs
@@ -299,7 +299,7 @@ make prod-logs
 make prod-rebuild
 
 # Stop
-./shutdown-prod.sh
+./scripts/shutdown-prod.sh
 ```
 
 ### Configuration
@@ -443,8 +443,8 @@ cd ui && rm -rf node_modules && npm install
 
 **Can't connect to infrastructure**:
 ```bash
-docker-compose -f docker-compose.dev.yml ps
-./shutdown-dev.sh && ./startup-dev.sh
+./scripts/dcompose -f docker-compose.dev.yml ps
+./scripts/shutdown-dev.sh && ./scripts/startup-dev.sh
 ```
 
 ### Production Mode
@@ -452,8 +452,8 @@ docker-compose -f docker-compose.dev.yml ps
 ```bash
 docker ps
 make prod-logs
-docker-compose -f docker-compose.prod.yml down -v
-./startup-prod.sh
+./scripts/dcompose -f docker-compose.prod.yml down -v
+./scripts/startup-prod.sh
 ```
 
 **Ollama connection fails**:
@@ -494,14 +494,14 @@ Before deploying:
 
 ```bash
 # DEV MODE (Fast Iteration)
-./startup-dev.sh
+./scripts/startup-dev.sh
 cd api-worker && source venv/bin/activate && python main.py  # Terminal 1
 cd ui && npm run dev                                         # Terminal 2
-./shutdown-dev.sh
+./scripts/shutdown-dev.sh
 
 # PROD MODE (Deployment)
-./startup-prod.sh
-./shutdown-prod.sh
+./scripts/startup-prod.sh
+./scripts/shutdown-prod.sh
 
 # MAKE SHORTCUTS
 make help          # All commands
@@ -530,11 +530,10 @@ Prompt-Tuning-Pipeline/
 │   │   ├── store.ts
 │   │   └── App.tsx
 │   └── .env / .env.dev
+├── scripts/                # startup/shutdown + dcompose (Compose V1/V2 shim)
 ├── docker-compose.dev.yml  # Dev infrastructure
 ├── docker-compose.prod.yml # Full production
-├── startup-dev.sh          # Start dev
-├── startup-prod.sh         # Start prod
-├── Makefile                # All commands
+├── Makefile                # All commands (uses ./scripts/dcompose)
 └── README.md               # This file
 ```
 
